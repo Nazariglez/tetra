@@ -10,6 +10,7 @@ This project adheres to Semantic Versioning.
 
 * Tetra now requires Rust 1.32 or higher - this is to allow us to use uniform paths.
 * Tetra now has its own `Key` and `MouseButton` types, instead of exporting the ones from the `sdl2` crate. Some key names have been changed to make them more obvious/consistent.
+* The `graphics` module has been reorganized to rely less heavily on re-exports - most things now have a 'right' place to import them from.
 
 ### Removed
 

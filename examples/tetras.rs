@@ -1,7 +1,7 @@
 // Loosely based on https://github.com/jonhoo/tetris-tutorial
 
 use rand::{self, Rng};
-use tetra::graphics::color;
+use tetra::graphics::colors;
 use tetra::graphics::{self, Color, DrawParams, Texture, Vec2};
 use tetra::input::{self, Key};
 use tetra::window;
@@ -367,7 +367,7 @@ impl State for GameState {
     }
 
     fn draw(&mut self, ctx: &mut Context, _dt: f64) -> tetra::Result {
-        graphics::clear(ctx, color::BLACK);
+        graphics::clear(ctx, colors::BLACK);
 
         for (x, y, color) in self.board_blocks() {
             graphics::draw(

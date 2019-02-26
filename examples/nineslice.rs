@@ -1,5 +1,6 @@
-use tetra::graphics::color;
-use tetra::graphics::{self, NineSlice, Rectangle, Texture, Vec2};
+use tetra::graphics::colors;
+use tetra::graphics::ui::NineSlice;
+use tetra::graphics::{self, Rectangle, Texture, Vec2};
 use tetra::{Context, ContextBuilder, State};
 
 struct GameState {
@@ -18,7 +19,7 @@ impl GameState {
 
 impl State for GameState {
     fn draw(&mut self, ctx: &mut Context, _dt: f64) -> tetra::Result {
-        graphics::clear(ctx, color::BLACK);
+        graphics::clear(ctx, colors::BLACK);
         graphics::draw(ctx, &self.panel, Vec2::new(0.0, 0.0));
 
         Ok(())

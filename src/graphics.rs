@@ -6,22 +6,20 @@
 //! rendering.
 
 pub mod animation;
-pub mod color;
+pub mod colors;
 pub(crate) mod opengl;
-pub mod scaling;
-pub mod shader;
-pub mod text;
-pub mod texture;
 pub mod ui;
 
-pub use self::animation::Animation;
-pub use self::color::Color;
-pub use self::scaling::ScreenScaling;
-pub use self::shader::Shader;
-pub use self::text::{Font, Text};
-pub use self::texture::Texture;
-pub use self::ui::NineSlice;
+mod scaling;
+mod shader;
+mod text;
+mod texture;
+
 pub use glm::Vec2;
+pub use scaling::*;
+pub use shader::*;
+pub use text::*;
+pub use texture::*;
 
 use glm::{self, Mat4};
 use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
@@ -309,6 +307,34 @@ impl Iterator for RectangleColumn {
     }
 }
 
+/// Represents an RGBA color.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Color {
+    /// The red component of the color.
+    pub r: f32,
+
+    /// The green component of the color.
+    pub g: f32,
+
+    /// The blue component of the color.
+    pub b: f32,
+
+    /// The alpha component of the color.
+    pub a: f32,
+}
+
+impl Color {
+    /// Creates a new `Color`, with the specified RGB values and the alpha set to 1.0.
+    pub fn rgb(r: f32, g: f32, b: f32) -> Color {
+        Color { r, g, b, a: 1.0 }
+    }
+
+    /// Creates a new `Color`, with the specified RGBA values.
+    pub fn rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
+        Color { r, g, b, a }
+    }
+}
+
 /// Struct representing the parameters that can be used when drawing.
 ///
 /// You can either use this as a builder by calling `DrawParams::new` and then chaining methods, or
@@ -390,7 +416,7 @@ impl Default for DrawParams {
             scale: Vec2::new(1.0, 1.0),
             origin: Vec2::new(0.0, 0.0),
             rotation: 0.0,
-            color: color::WHITE,
+            color: colors::WHITE,
             clip: None,
         }
     }
@@ -639,7 +665,7 @@ pub fn present(ctx: &mut Context) {
     set_texture_ex(ctx, ActiveTexture::Framebuffer);
     let user_shader = set_shader_ex(ctx, ActiveShader::Default);
 
-    clear(ctx, color::BLACK);
+    clear(ctx, colors::BLACK);
 
     let screen_rect = ctx.graphics.screen_rect;
 
