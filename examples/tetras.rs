@@ -3,7 +3,7 @@
 // and the ggez-goodies scene stack.
 
 use rand::{self, Rng};
-use tetra::graphics::{self, Color, DrawParams, Texture, Vec2};
+use tetra::graphics::{self, Color, DrawParams, Font, Text, Texture, Vec2};
 use tetra::input::{self, Key};
 use tetra::window;
 use tetra::{Context, ContextBuilder, State};

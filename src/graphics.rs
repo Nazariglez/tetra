@@ -202,7 +202,7 @@ impl GraphicsContext {
             internal_height,
             scaling,
             screen_rect,
-            letterbox_color: color::BLACK,
+            letterbox_color: colors::BLACK,
 
             font_cache,
         })
@@ -795,7 +795,7 @@ pub fn set_scaling(ctx: &mut Context, scaling: ScreenScaling) {
 }
 
 /// Sets the color of the letterbox bars that are displayed when scaling the screen.
-/// 
+///
 /// For information on which scaling modes can cause letterboxing, see the docs for
 /// [`ScreenScaling`](./scaling/enum.ScreenScaling.html).
 pub fn set_letterbox_color(ctx: &mut Context, color: Color) {
