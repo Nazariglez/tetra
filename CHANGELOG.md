@@ -16,6 +16,43 @@ This project adheres to Semantic Versioning.
 
 * The deprecated `build_matrix` method has been removed from `DrawParams`.
 
+## 0.2.14 - Upcoming
+
+### Added
+
+* `graphics::set_letterbox_color` allows you to set the color of the letterbox bars shown in certain scaling modes.
+
+## [0.2.13] - 2019-03-05
+
+### Added
+
+* A `from_rgba` constructor has been added to `Texture`.
+* `from_file_data` constructors have been added to `Texture` and `Sound`. These function the same as the `from_data` constructors, but are more clearly named to reflect the fact that they expect *encoded* data, not *raw* data.
+
+### Changed
+
+* The `tetras` example has been updated to demonstrate how you could approach adding multiple screens/states to a game.
+
+### Deprecated
+
+* The `from_data` constructors have been deprecated.
+
+## [0.2.12] - 2019-02-07
+
+### Changed
+
+* The renderer has been optimized a bit more.
+
+### Fixed
+
+* The 'color' DrawParams property is now being sent to the shader properly - the last few versions had a bug where the blue level was being sent in place of the green channel.
+
+## [0.2.11] - 2019-02-06
+
+### Fixed
+
+* The audio engine now handles repeats/restarts of a `SoundInstance` more reliably. This was mainly an issue with OGG and MP3 files.
+
 ## [0.2.10] - 2019-02-03
 
 ### Added
@@ -230,6 +267,9 @@ This project adheres to Semantic Versioning.
 
 * Initial release!
 
+[0.2.13]: https://github.com/17cupsofcoffee/tetra/compare/0.2.12..0.2.13
+[0.2.12]: https://github.com/17cupsofcoffee/tetra/compare/0.2.11..0.2.12
+[0.2.11]: https://github.com/17cupsofcoffee/tetra/compare/0.2.10..0.2.11
 [0.2.10]: https://github.com/17cupsofcoffee/tetra/compare/0.2.9..0.2.10
 [0.2.9]: https://github.com/17cupsofcoffee/tetra/compare/0.2.8..0.2.9
 [0.2.8]: https://github.com/17cupsofcoffee/tetra/compare/0.2.7..0.2.8

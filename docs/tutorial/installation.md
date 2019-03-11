@@ -36,8 +36,6 @@ If you're using the GNU-based Rust toolchain:
 
 #### Mac
 
-> Note that Tetra currently has some issues with black screens on Mac systems - for information (and if you'd like to help fix them!), please see [this issue on our GitHub repository](https://github.com/17cupsofcoffee/tetra/issues/54).
-
 The easiest way to install SDL is via [Homebrew](http://brew.sh/):
 
 ```bash
@@ -101,4 +99,4 @@ If you're on Windows, you'll need to place the SDL2 .dll in the root of your pro
 
 ## Next Steps
 
-Once those steps are complete, you're ready to [start writing your first game with Tetra](./getting-started)!
+Once those steps are complete, you're ready to [start writing your first game with Tetra](./getting-started.md)!

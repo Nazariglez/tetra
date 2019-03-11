@@ -12,7 +12,7 @@ mod types;
 
 use glm::Vec2;
 use hashbrown::{HashMap, HashSet};
-use sdl2::controller::{Axis as SdlAxis, GameController};
+use sdl2::controller::{Axis as SdlAxis, Button as SdlButton, GameController};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode as SdlKey;
 use sdl2::{GameControllerSubsystem, Sdl};
