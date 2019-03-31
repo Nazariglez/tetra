@@ -22,8 +22,10 @@ don't break when rendered by mdbook.
 | [`nineslice`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/nineslice.rs) | Graphics | Slices a texture into nine segments to display a dialog box. |
 | [`scaling`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/scaling.rs) | Graphics | Demonstrates the different screen scaling algorithms. |
 | [`shaders`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/shaders.rs) | Graphics | Uses a custom shader to render a texture. |
-| [`audio`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/audi.rs) | Audio | Plays back an audio file. |
+| [`canvas`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/canvas.rs) | Graphics | Uses a custom render target to apply post-processing effects. |
+| [`audio`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/audio.rs) | Audio | Plays back an audio file. |
 | [`keyboard`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/keyboard.rs) | Input | Moves a texture around based on keyboard input. |
+| [`animation_controller`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/animation_controller.rs) | Input | Moves a sprite around, with the animation changing based on keyboard input. |
 | [`mouse`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/mouse.rs) | Input | Moves a texture around based on mouse input. |
 | [`gamepad`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/gamepad.rs) | Input | Displays the input from a connected gamepad. |
 | [`text_input`](https://github.com/17cupsofcoffee/tetra/blob/master/examples/text_input.rs) | Input | Displays text as it is typed in by the player. |

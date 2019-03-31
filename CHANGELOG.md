@@ -16,11 +16,24 @@ This project adheres to Semantic Versioning.
 
 * The deprecated `build_matrix` method has been removed from `DrawParams`.
 
-## 0.2.14 - Upcoming
+## [0.2.14] - 2019-03-30
 
 ### Added
 
 * `graphics::set_letterbox_color` allows you to set the color of the letterbox bars shown in certain scaling modes.
+* Basic support for off-screen rendering/'render to texture' has been implemented, in the form of the `Canvas` object.
+* An `animation_controller` example has been added, showing how to change animations based on the player's input. ([@mgocobachi](https://github.com/mgocobachi) in [#96](https://github.com/17cupsofcoffee/tetra/pull/110))
+* A `from_file_data` constructor has been added to `Font`, for consistency with `Texture` and `Sound`.
+
+### Changed
+
+* Alpha blending should now work in a more predictable way. This may need further tweaks later on.
+* The renderer now flips drawing automatically when drawing to a framebuffer, due to how OpenGL stores textures. This is similar to how FNA and Love2D handle the same problem.
+* The renderer no longer implicitly re-binds shaders after calling `graphics::present`.
+
+### Deprecated
+
+* `Font::from_data` has been deprecated.
 
 ## [0.2.13] - 2019-03-05
 
@@ -267,6 +280,7 @@ This project adheres to Semantic Versioning.
 
 * Initial release!
 
+[0.2.14]: https://github.com/17cupsofcoffee/tetra/compare/0.2.13..0.2.14
 [0.2.13]: https://github.com/17cupsofcoffee/tetra/compare/0.2.12..0.2.13
 [0.2.12]: https://github.com/17cupsofcoffee/tetra/compare/0.2.11..0.2.12
 [0.2.11]: https://github.com/17cupsofcoffee/tetra/compare/0.2.10..0.2.11

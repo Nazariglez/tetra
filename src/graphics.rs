@@ -6,15 +6,18 @@
 //! rendering.
 
 pub mod animation;
+
 pub mod colors;
 pub(crate) mod opengl;
 pub mod ui;
 
+mod canvas;
 mod scaling;
 mod shader;
 mod text;
 mod texture;
 
+pub use canvas::*;
 pub use glm::Vec2;
 pub use scaling::*;
 pub use shader::*;
@@ -26,7 +29,7 @@ use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
 
 use crate::error::Result;
 use crate::graphics::opengl::{
-    BufferUsage, GLDevice, GLFramebuffer, GLIndexBuffer, GLVertexBuffer, TextureFormat,
+    BufferUsage, FrontFace, GLDevice, GLIndexBuffer, GLVertexBuffer, TextureFormat,
 };
 use crate::window;
 use crate::Context;
@@ -40,7 +43,7 @@ const DEFAULT_FONT: &[u8] = include_bytes!("./resources/DejaVuSansMono.ttf");
 
 #[derive(PartialEq)]
 pub(crate) enum ActiveTexture {
-    Framebuffer,
+    Backbuffer,
     FontCache,
     User(Texture),
 }
@@ -52,15 +55,10 @@ pub(crate) enum ActiveShader {
 }
 
 #[derive(PartialEq)]
-pub(crate) enum ActiveProjection {
-    Internal,
-    Window,
-}
-
-#[derive(PartialEq)]
-pub(crate) enum ActiveFramebuffer {
+pub(crate) enum ActiveCanvas {
     Backbuffer,
     Window,
+    User(Canvas),
 }
 
 pub(crate) struct GraphicsContext {
@@ -68,18 +66,15 @@ pub(crate) struct GraphicsContext {
     index_buffer: GLIndexBuffer,
 
     texture: Option<ActiveTexture>,
-    backbuffer_texture: Texture,
     font_cache_texture: Texture,
 
     shader: ActiveShader,
     default_shader: Shader,
 
-    projection: ActiveProjection,
-    internal_projection: Mat4,
     window_projection: Mat4,
 
-    framebuffer: ActiveFramebuffer,
-    backbuffer: GLFramebuffer,
+    canvas: ActiveCanvas,
+    backbuffer: Canvas,
 
     vertex_data: Vec<f32>,
     element_capacity: usize,
@@ -116,15 +111,13 @@ impl GraphicsContext {
         let screen_rect =
             scaling.get_screen_rect(internal_width, internal_height, window_width, window_height);
 
-        let backbuffer = device.new_framebuffer();
-        let backbuffer_texture = Texture::from_handle(device.new_texture(
-            backbuffer_width,
-            backbuffer_height,
-            TextureFormat::Rgb,
-        ));
-
-        device.attach_texture_to_framebuffer(&backbuffer, &backbuffer_texture.handle, false);
+        let backbuffer_texture =
+            device.new_texture(backbuffer_width, backbuffer_height, TextureFormat::Rgba);
+        let backbuffer_fb = device.new_framebuffer();
+        device.attach_texture_to_framebuffer(&backbuffer_fb, &backbuffer_texture, false);
         device.set_viewport(0, 0, backbuffer_width, backbuffer_height);
+        device.front_face(FrontFace::Clockwise);
+        let backbuffer = Canvas::from_handle(backbuffer_texture, backbuffer_fb);
 
         let indices: Vec<u32> = INDEX_ARRAY
             .iter()
@@ -167,22 +160,12 @@ impl GraphicsContext {
             index_buffer,
 
             texture: None,
-            backbuffer_texture,
             font_cache_texture,
 
             shader: ActiveShader::Default,
             default_shader,
 
-            projection: ActiveProjection::Internal,
-            internal_projection: ortho(
-                0.0,
-                backbuffer_width as f32,
-                backbuffer_height as f32,
-                0.0,
-                -1.0,
-                1.0,
-            ),
-            window_projection: ortho(
+            window_projection: glm::ortho(
                 0.0,
                 window_width as f32,
                 window_height as f32,
@@ -191,7 +174,7 @@ impl GraphicsContext {
                 1.0,
             ),
 
-            framebuffer: ActiveFramebuffer::Backbuffer,
+            canvas: ActiveCanvas::Backbuffer,
             backbuffer,
 
             vertex_data: Vec::with_capacity(MAX_VERTICES * VERTEX_STRIDE),
@@ -431,12 +414,12 @@ impl From<Vec2> for DrawParams {
     }
 }
 
-/// Represents a type that can be drawn to the screen/render target.
+/// Represents a type that can be drawn.
 ///
 /// [graphics::draw](fn.draw.html) can be used to draw without importing this trait, which is sometimes
 /// more convienent.
 pub trait Drawable {
-    /// Draws `self` to the currently enabled render target, using the specified parameters.
+    /// Draws `self` to the screen (or a canvas, if one is enabled), using the specified parameters.
     ///
     /// Any type that implements `Into<DrawParams>` can be passed into this method. For example, since the majority
     /// of the time, you only care about changing the position, a `Vec2` can be passed to set the position and leave
@@ -446,7 +429,7 @@ pub trait Drawable {
         P: Into<DrawParams>;
 }
 
-/// Clears the currently enabled render target to the specified color.
+/// Clears the screen (or a canvas, if one is enabled) to the specified color.
 pub fn clear(ctx: &mut Context, color: Color) {
     ctx.gl.clear(color.r, color.g, color.b, color.a);
 }
@@ -557,7 +540,7 @@ pub(crate) fn push_quad(
     ctx.graphics.element_count += 6;
 }
 
-/// Draws an object to the currently enabled render target.
+/// Draws an object to the screen (or to a canvas, if one is enabled).
 ///
 /// This function simply calls [`draw`](trait.Drawable.html#tymethod.draw) on the passed object - it is
 /// provided to allow you to avoid having to import the [`Drawable`](trait.Drawable.html) trait as well
@@ -598,41 +581,53 @@ pub fn reset_shader(ctx: &mut Context) {
     set_shader_ex(ctx, ActiveShader::Default);
 }
 
-pub(crate) fn set_shader_ex(ctx: &mut Context, shader: ActiveShader) -> Option<Shader> {
+pub(crate) fn set_shader_ex(ctx: &mut Context, shader: ActiveShader) {
     if shader != ctx.graphics.shader {
         flush(ctx);
-        let old_shader = std::mem::replace(&mut ctx.graphics.shader, shader);
-
-        if let ActiveShader::User(s) = old_shader {
-            return Some(s);
-        }
-    }
-
-    None
-}
-
-pub(crate) fn set_projection_ex(ctx: &mut Context, projection: ActiveProjection) {
-    if projection != ctx.graphics.projection {
-        flush(ctx);
-        ctx.graphics.projection = projection;
+        ctx.graphics.shader = shader;
     }
 }
 
-pub(crate) fn set_framebuffer_ex(ctx: &mut Context, framebuffer: ActiveFramebuffer) {
-    if framebuffer != ctx.graphics.framebuffer {
-        flush(ctx);
-        ctx.graphics.framebuffer = framebuffer;
+/// Sets the renderer to redirect all drawing commands to the specified canvas.
+///
+/// If the canvas is different from the one that is currently in use, this will trigger a
+/// [`flush`](fn.flush.html) to the graphics hardware.
+pub fn set_canvas(ctx: &mut Context, canvas: &Canvas) {
+    set_canvas_ex(ctx, ActiveCanvas::User(canvas.clone()));
+}
 
-        match ctx.graphics.framebuffer {
-            ActiveFramebuffer::Backbuffer => {
-                ctx.gl.bind_framebuffer(&ctx.graphics.backbuffer);
-                ctx.gl
-                    .set_viewport(0, 0, get_internal_width(ctx), get_internal_height(ctx));
-            }
-            ActiveFramebuffer::Window => {
+/// Sets the renderer back to drawing to the screen directly.
+pub fn reset_canvas(ctx: &mut Context) {
+    set_canvas_ex(ctx, ActiveCanvas::Backbuffer);
+}
+
+pub(crate) fn set_canvas_ex(ctx: &mut Context, canvas: ActiveCanvas) {
+    if canvas != ctx.graphics.canvas {
+        flush(ctx);
+        ctx.graphics.canvas = canvas;
+
+        match &ctx.graphics.canvas {
+            ActiveCanvas::Window => {
                 ctx.gl.bind_default_framebuffer();
+                ctx.gl.front_face(FrontFace::CounterClockwise);
                 ctx.gl
                     .set_viewport(0, 0, window::get_width(ctx), window::get_height(ctx));
+            }
+            ActiveCanvas::Backbuffer => {
+                ctx.gl
+                    .bind_framebuffer(&ctx.graphics.backbuffer.framebuffer);
+                ctx.gl.front_face(FrontFace::Clockwise);
+                ctx.gl.set_viewport(
+                    0,
+                    0,
+                    ctx.graphics.backbuffer.width(),
+                    ctx.graphics.backbuffer.height(),
+                );
+            }
+            ActiveCanvas::User(r) => {
+                ctx.gl.bind_framebuffer(&r.framebuffer);
+                ctx.gl.front_face(FrontFace::Clockwise);
+                ctx.gl.set_viewport(0, 0, r.width(), r.height());
             }
         }
     }
@@ -647,7 +642,7 @@ pub fn flush(ctx: &mut Context) {
     if !ctx.graphics.vertex_data.is_empty() {
         let texture = match &ctx.graphics.texture {
             None => return,
-            Some(ActiveTexture::Framebuffer) => &ctx.graphics.backbuffer_texture,
+            Some(ActiveTexture::Backbuffer) => &ctx.graphics.backbuffer.texture,
             Some(ActiveTexture::FontCache) => &ctx.graphics.font_cache_texture,
             Some(ActiveTexture::User(t)) => &t,
         };
@@ -657,9 +652,10 @@ pub fn flush(ctx: &mut Context) {
             ActiveShader::User(s) => &s,
         };
 
-        let projection = match &ctx.graphics.projection {
-            ActiveProjection::Internal => &ctx.graphics.internal_projection,
-            ActiveProjection::Window => &ctx.graphics.window_projection,
+        let projection = match &ctx.graphics.canvas {
+            ActiveCanvas::Window => &ctx.graphics.window_projection,
+            ActiveCanvas::Backbuffer => &ctx.graphics.backbuffer.projection,
+            ActiveCanvas::User(r) => &r.projection,
         };
 
         ctx.gl.bind_texture(&texture.handle);
@@ -680,15 +676,17 @@ pub fn flush(ctx: &mut Context) {
     }
 }
 
-/// Draws the currently enabled render target to the screen, scaling/letterboxing it if necessary.
+/// Presents the result of drawing commands to the screen, scaling/letterboxing if necessary.
+///
+/// If any custom shaders/canvases are set, this function will unset them -
+/// don't rely on the state of one render carrying over to the next!
 ///
 /// You usually will not have to call this manually, as it is called for you at the end of every
 /// frame. Note that calling it will trigger a [`flush`](fn.flush.html) to the graphics hardware.
 pub fn present(ctx: &mut Context) {
-    set_framebuffer_ex(ctx, ActiveFramebuffer::Window);
-    set_projection_ex(ctx, ActiveProjection::Window);
-    set_texture_ex(ctx, ActiveTexture::Framebuffer);
-    let user_shader = set_shader_ex(ctx, ActiveShader::Default);
+    set_canvas_ex(ctx, ActiveCanvas::Window);
+    set_shader_ex(ctx, ActiveShader::Default);
+    set_texture_ex(ctx, ActiveTexture::Backbuffer);
 
     clear(ctx, ctx.graphics.letterbox_color);
 
@@ -701,26 +699,21 @@ pub fn present(ctx: &mut Context) {
         screen_rect.x + screen_rect.width,
         screen_rect.y + screen_rect.height,
         0.0,
-        1.0,
-        1.0,
         0.0,
+        1.0,
+        1.0,
         &DrawParams::new(),
     );
 
     flush(ctx);
     ctx.window.gl_swap_window();
 
-    set_framebuffer_ex(ctx, ActiveFramebuffer::Backbuffer);
-    set_projection_ex(ctx, ActiveProjection::Internal);
-
-    if let Some(s) = user_shader {
-        set_shader_ex(ctx, ActiveShader::User(s));
-    }
+    set_canvas_ex(ctx, ActiveCanvas::Backbuffer);
 }
 
 /// Gets the internal width of the screen.
 pub fn get_internal_width(ctx: &Context) -> i32 {
-    ctx.graphics.backbuffer_texture.width()
+    ctx.graphics.backbuffer.width()
 }
 
 /// Sets the internal width of the screen.
@@ -733,7 +726,7 @@ pub fn set_internal_width(ctx: &mut Context, width: i32) {
 
 /// Gets the internal height of the screen.
 pub fn get_internal_height(ctx: &Context) -> i32 {
-    ctx.graphics.backbuffer_texture.height()
+    ctx.graphics.backbuffer.height()
 }
 
 /// Sets the internal height of the screen.
@@ -747,8 +740,8 @@ pub fn set_internal_height(ctx: &mut Context, height: i32) {
 /// Gets the internal size of the screen.
 pub fn get_internal_size(ctx: &Context) -> (i32, i32) {
     (
-        ctx.graphics.backbuffer_texture.width(),
-        ctx.graphics.backbuffer_texture.height(),
+        ctx.graphics.backbuffer.width(),
+        ctx.graphics.backbuffer.height(),
     )
 }
 
@@ -803,57 +796,24 @@ pub fn set_letterbox_color(ctx: &mut Context, color: Color) {
 }
 
 pub(crate) fn set_backbuffer_size(ctx: &mut Context, width: i32, height: i32) {
-    ctx.graphics.internal_projection = ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
+    if ctx.graphics.backbuffer.width() != width || ctx.graphics.backbuffer.height() != height {
+        ctx.graphics.backbuffer = Canvas::new(ctx, width, height);
 
-    ctx.graphics.backbuffer_texture =
-        Texture::from_handle(ctx.gl.new_texture(width, height, TextureFormat::Rgb));
-
-    ctx.gl.attach_texture_to_framebuffer(
-        &ctx.graphics.backbuffer,
-        &ctx.graphics.backbuffer_texture.handle,
-        true,
-    );
-
-    // TODO: This might conflict with set_framebuffer_ex - bit of a hack
-    ctx.gl.set_viewport(0, 0, width, height);
+        if let ActiveCanvas::Backbuffer = ctx.graphics.canvas {
+            ctx.gl.set_viewport(0, 0, width, height);
+        }
+    }
 }
 
 pub(crate) fn update_screen_rect(ctx: &mut Context) {
     ctx.graphics.screen_rect = ctx.graphics.scaling.get_screen_rect(
-        ctx.graphics.backbuffer_texture.width(),
-        ctx.graphics.backbuffer_texture.height(),
+        ctx.graphics.backbuffer.width(),
+        ctx.graphics.backbuffer.height(),
         window::get_width(ctx),
         window::get_height(ctx),
     );
 }
 
 pub(crate) fn set_window_projection(ctx: &mut Context, width: i32, height: i32) {
-    ctx.graphics.window_projection = ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
-}
-
-pub(crate) fn ortho(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) -> Mat4 {
-    // Taken from GGEZ - nalgebra doesn't like upside-down projections
-    let c0r0 = 2.0 / (right - left);
-    let c0r1 = 0.0;
-    let c0r2 = 0.0;
-    let c0r3 = 0.0;
-    let c1r0 = 0.0;
-    let c1r1 = 2.0 / (top - bottom);
-    let c1r2 = 0.0;
-    let c1r3 = 0.0;
-    let c2r0 = 0.0;
-    let c2r1 = 0.0;
-    let c2r2 = -2.0 / (far - near);
-    let c2r3 = 0.0;
-    let c3r0 = -(right + left) / (right - left);
-    let c3r1 = -(top + bottom) / (top - bottom);
-    let c3r2 = -(far + near) / (far - near);
-    let c3r3 = 1.0;
-
-    Mat4::from([
-        [c0r0, c0r1, c0r2, c0r3],
-        [c1r0, c1r1, c1r2, c1r3],
-        [c2r0, c2r1, c2r2, c2r3],
-        [c3r0, c3r1, c3r2, c3r3],
-    ])
+    ctx.graphics.window_projection = glm::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
 }
