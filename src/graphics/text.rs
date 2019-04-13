@@ -14,7 +14,8 @@ use crate::graphics::{
 };
 use crate::Context;
 
-struct FontQuad {
+#[derive(Clone)]
+pub(crate) struct FontQuad {
     x1: f32,
     y1: f32,
     x2: f32,
@@ -111,6 +112,11 @@ impl Text {
         }
     }
 
+    /// Gets the content of the text.
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
     /// Sets the content of the text.
     pub fn set_content<S>(&mut self, content: S)
     where
@@ -139,9 +145,20 @@ impl Text {
             })
     }
 
+    /// Gets the font of the text.
+    pub fn font(&self) -> &Font {
+        &self.font
+    }
+
     /// Sets the font of the text.
     pub fn set_font(&mut self, font: Font) {
         self.font = font;
+    }
+
+    /// Gets the size of the text.
+    pub fn size(&self) -> f32 {
+        // This is fine, because we only let the user set uniform scales.
+        self.size.x
     }
 
     /// Sets the size of the text.
@@ -183,11 +200,8 @@ impl Text {
                 Err(BrushError::TextureTooSmall { suggested, .. }) => {
                     let (width, height) = suggested;
 
-                    *texture_ref = Texture::from_handle(device_ref.new_texture(
-                        width as i32,
-                        height as i32,
-                        TextureFormat::Rgba,
-                    ));
+                    *texture_ref =
+                        Texture::with_device_empty(device_ref, width as i32, height as i32);
 
                     ctx.graphics.font_cache.resize_texture(width, height);
                 }

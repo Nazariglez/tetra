@@ -1,4 +1,4 @@
-//! Functions and types relating to handling user input (e.g. keyboards, mice, gamepads).
+//! Functions and types relating to handling the player's input.
 //!
 //! # Gamepads
 //!
@@ -10,7 +10,6 @@
 
 mod types;
 
-use glm::Vec2;
 use hashbrown::{HashMap, HashSet};
 use sdl2::controller::{Axis as SdlAxis, GameController};
 use sdl2::event::Event;
@@ -18,6 +17,7 @@ use sdl2::keyboard::Keycode as SdlKey;
 use sdl2::{GameControllerSubsystem, Sdl};
 
 use crate::error::{Result, TetraError};
+use crate::glm::Vec2;
 use crate::graphics;
 use crate::Context;
 

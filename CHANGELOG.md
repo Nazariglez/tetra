@@ -16,6 +16,30 @@ This project adheres to Semantic Versioning.
 
 * The deprecated `build_matrix` method has been removed from `DrawParams`.
 
+## [0.2.16] - 2019-04-07
+
+### Changed
+
+* Reverted `nalgebra-glm` to 0.2.0 to avoid increasing the minimum Rust version.
+
+## [0.2.15] - 2019-04-07
+
+### Added
+
+* `Animation`, `Text` and `NineSlice` now expose more getters and setters, allowing more of their state to be accessed and manipulated after creation.
+
+### Changed
+
+* The way that `nalgebra-glm` is re-exported has been changed slightly, to make it so we can provide a bit more documentation. This should not have any impact on usage or the public facing API.
+* Updated `gl` to 0.32.2.
+* Updated `nalgebra-glm` to 0.4.0.
+* Updated `hashbrown` to 0.2.0.
+* Updated `glyph_brush` to 0.4.1.
+
+### Removed
+
+* The workaround for the issues with `rand_core` has been removed, as the underlying issue has been fixed. You may need to `cargo clean` if this causes issues.
+
 ## [0.2.14] - 2019-03-30
 
 ### Added
@@ -280,6 +304,8 @@ This project adheres to Semantic Versioning.
 
 * Initial release!
 
+[0.2.16]: https://github.com/17cupsofcoffee/tetra/compare/0.2.15..0.2.16
+[0.2.15]: https://github.com/17cupsofcoffee/tetra/compare/0.2.14..0.2.15
 [0.2.14]: https://github.com/17cupsofcoffee/tetra/compare/0.2.13..0.2.14
 [0.2.13]: https://github.com/17cupsofcoffee/tetra/compare/0.2.12..0.2.13
 [0.2.12]: https://github.com/17cupsofcoffee/tetra/compare/0.2.11..0.2.12
