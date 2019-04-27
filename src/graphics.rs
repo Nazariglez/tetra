@@ -36,7 +36,7 @@ use crate::window;
 use crate::Context;
 
 const MAX_SPRITES: usize = 2048;
-const MAX_VERTICES: usize = MAX_SPRITES * 4;
+const MAX_VERTICES: usize = MAX_SPRITES * 4; // Cannot be greater than 32767!
 const MAX_INDICES: usize = MAX_SPRITES * 6;
 const VERTEX_STRIDE: usize = 8;
 const INDEX_ARRAY: [u32; 6] = [0, 1, 2, 2, 3, 0];
@@ -99,11 +99,6 @@ impl GraphicsContext {
         internal_height: i32,
         scaling: ScreenScaling,
     ) -> Result<GraphicsContext> {
-        assert!(
-            MAX_VERTICES <= 32767,
-            "Can't have more than 32767 vertices to a single buffer"
-        );
-
         let (backbuffer_width, backbuffer_height) = match scaling {
             ScreenScaling::Resize => (window_width, window_height),
             _ => (internal_width, internal_height),
@@ -112,7 +107,7 @@ impl GraphicsContext {
         let screen_rect =
             scaling.get_screen_rect(internal_width, internal_height, window_width, window_height);
 
-        let backbuffer = Canvas::with_device(device, backbuffer_width, backbuffer_height);
+        let backbuffer = Canvas::with_device(device, backbuffer_width, backbuffer_height, false);
         device.set_viewport(0, 0, backbuffer_width, backbuffer_height);
         device.front_face(FrontFace::Clockwise);
 

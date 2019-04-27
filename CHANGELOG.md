@@ -16,6 +16,16 @@ This project adheres to Semantic Versioning.
 
 * The deprecated `build_matrix` method has been removed from `DrawParams`.
 
+## 0.2.x - Upcoming
+
+### Added
+
+* An example of how to interpolate between ticks using the `dt` has been added.
+
+### Fixed
+
+* Fixed issue with the backbuffer not being bound on the first frame.
+
 ## [0.2.16] - 2019-04-07
 
 ### Changed
